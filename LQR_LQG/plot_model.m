@@ -1,4 +1,4 @@
-function plot_model(x_func, y_func, plt_type)
+function error_output = plot_model(x_func, y_func, plt_type)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf('Entering Calculation Mode\n')
 % INPUTS: x_func   --> parameterized representation of the x function
@@ -28,10 +28,10 @@ finalIndex = 100;
 deltaT = 0.1;
 
 % Initialize position variables
-xTilda = 1:finalIndex;
-yTilda = 1:finalIndex;
-err = 1:finalIndex;
-xValues = zeros(1, finalIndex);
+xTilda = 1:finalIndex-1;
+yTilda = 1:finalIndex-1;
+err = 1:finalIndex-1;
+xValues = zeros(1, finalIndex-1);
 yValues = xValues;
 
 % Run function to calculate reference
@@ -42,10 +42,11 @@ global zz_pt
 zz_pt = [-3,-3];
 
 % Set up figure with limits
-f = figure('Position', [1600, 20, 1000, 600]);
+f = figure('units','normalized','outerposition',[0 0 1 1]);
 set(f,'WindowButtonDownFcn',@clicker)
-ax1 = subplot(1,2,1);
-ax2 = subplot(1,2,2);
+ax1 = subplot(1,3,1);
+ax2 = subplot(1,3,2);
+ax3 = subplot(1,3,3);
 set(ax1,'ButtonDownFcn','disp(''axis callback'')')
 
 % Switch-case for determining if plot method is static or dynamic
@@ -73,7 +74,7 @@ for i = plt_start:finalIndex-1
     set(b,'HitTest','off')
     
     % Make Error Plot
-    c = plot(ax2, (1:i)*deltaT, err(1:i), 'LineWidth', 1);
+    c = plot(ax2, (0:i-1)*deltaT, err(1:i), 'LineWidth', 1);
     title(ax2, 'X-Y Error')
     xlabel(ax2, 'Time (s)')
     ylabel(ax2, 'Error')
@@ -82,8 +83,27 @@ for i = plt_start:finalIndex-1
     ylim_curr(1) = 0;
     set(ax2,'ylim',ylim_curr)
     set(c,'HitTest','off')
+    
+    % Integrate error and return metric
+    if i>1
+        error_output = cumtrapz((0:i-1)*deltaT, err(1:i));
+    else
+        error_output = 0;
+    end
+    plot(ax3, (0:i-1)*deltaT, error_output, 'LineWidth', 1);
+    title(ax3, 'Integration of Error')
+    xlabel(ax3, 'Time (s)')
+    ylabel(ax3, 'Error Accumulation')
+    xlim(ax3, [0,finalIndex*deltaT])
+    ylim_curr = get(ax3,'ylim'); 
+    ylim_curr(1) = 0;
+    set(ax3,'ylim',ylim_curr)
+    
+    % Pause before showing next time step
     pause(0.05)
 end
+
+
 
 function clicker(~, ~)
     % This is the function to update the trajectory by clicking anywhere in

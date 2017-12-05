@@ -61,6 +61,6 @@ switch str{s}
 end
 
 % Run the plot function to plot the results
-plot_model(x_func, y_func, plt_type)
+error_output = plot_model(x_func, y_func, plt_type);
 
 
