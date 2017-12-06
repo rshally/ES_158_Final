@@ -1,5 +1,3 @@
-
-
 % Define a global variable to keep track of information
 global e_prev t_prev
 

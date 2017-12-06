@@ -11,6 +11,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global sigmaV sigmaW
 model = 'LQG'; %change this to specify noise variances
+time = 20; %total time of simulation
 
 % Determine the size of the noise variances
 switch model
@@ -28,7 +29,7 @@ switch model
 end
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-str = {'Circle','Real-Time Circle','User Choice','Pseudo-Random','Other'};
+str = {'Circle','Real-Time Circle','User Choice','Pseudo-Random','y=sin(t)','Other'};
 prompt = 'Select A Reference Path';
 [s,ok] = listdlg('PromptString',prompt,...
                 'SelectionMode','single',...
@@ -54,6 +55,10 @@ switch str{s}
         x_func = rand*sin(t) + rand*cos(t) + rand*t;
         y_func = rand*sin(t) + rand*cos(t) + rand*t;
         plt_type = 'static';
+    case 'y=sin(t)'
+        x_func = t;
+        y_func = sin(t);
+        plt_type = 'static';
     case 'Other'
         x_func = t;
         y_func = sin(x_func);
@@ -61,6 +66,8 @@ switch str{s}
 end
 
 % Run the plot function to plot the results
-error_output = plot_model(x_func, y_func, plt_type);
-
+error_output = plot_model(x_func, y_func, time, plt_type);
+err_accum = error_output(end);
+fprintf('Error accumulation:\n')
+disp(err_accum)
 

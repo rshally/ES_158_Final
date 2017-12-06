@@ -1,4 +1,4 @@
-function error_output = plot_model(x_func, y_func, plt_type)
+function error_output = plot_model(x_func, y_func, time, plt_type)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf('Entering Calculation Mode\n')
 % INPUTS: x_func   --> parameterized representation of the x function
@@ -24,8 +24,8 @@ fprintf('Entering Calculation Mode\n')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global xRef uRef xhat finalIndex deltaT currIndex xValues yValues err xTilda yTilda 
 currIndex = 1;
-finalIndex = 100;
 deltaT = 0.1;
+finalIndex = time/deltaT - currIndex;
 
 % Initialize position variables
 xTilda = 1:finalIndex-1;
@@ -35,11 +35,7 @@ xValues = zeros(1, finalIndex-1);
 yValues = xValues;
 
 % Run function to calculate reference
-[xRef, uRef, xhat] = calc_reference_V2(x_func, y_func, currIndex, finalIndex, deltaT);
-
-% Define bottom left coordinate of axis
-global zz_pt
-zz_pt = [-3,-3];
+[xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT);
 
 % Set up figure with limits
 f = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -67,8 +63,8 @@ for i = plt_start:finalIndex-1
     b = plot(ax1, xValues(1:i), yValues(1:i),'r-');
     legend(ax1, 'Reference Path','Robot Path')
     title(ax1, 'Robot Path')
-    xlim(ax1, [zz_pt(1), 3])
-    ylim(ax1, [zz_pt(2), 3])
+    xlim(ax1, [min(xRef(:,1))-2, max(xRef(:,1))+2])
+    ylim(ax1, [min(xRef(:,2))-2, max(xRef(:,2))+2])
     hold(ax1,'off')
     set(a,'HitTest','off')
     set(b,'HitTest','off')
@@ -120,5 +116,5 @@ function clicker(~, ~)
     syms t
     x_func = xRef(currIndex,1) + (t - (currIndex-1)*deltaT) / (((finalIndex-1) - (currIndex-1))*deltaT) * (x_pt - xRef(currIndex,1));
     y_func = slope*(x_func - x_pt) + y_pt + 0*t^3; 
-    [xRef, uRef, xhat] = calc_reference_V2(x_func, y_func, currIndex, finalIndex, deltaT, xhat, xRef, uRef);
+    [xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT, xhat, xRef, uRef);
 
