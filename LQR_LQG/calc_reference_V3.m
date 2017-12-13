@@ -1,4 +1,4 @@
-function [xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT, varargin)
+function [xRef, uRef, xhat, u] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT, varargin)
 % PURPOSE: Calculates positions and reference feedbacks for the model
 % based on the input position functions
 %
@@ -28,7 +28,7 @@ x = cell(finalIndex,1);
 C = [1 0 0; 0 1 0; 0 0 0];
 
 if currIndex==1
-    x{1} = [1.4 0 pi/8]';
+    x{1} = [.2 0 0]';
     xRef = zeros(finalIndex,3);
     uRef = zeros(finalIndex,2);
     xhat = x;

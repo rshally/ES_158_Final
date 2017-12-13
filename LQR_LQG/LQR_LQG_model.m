@@ -10,8 +10,8 @@
 % RENAME: LQR_LQG_model - merge LQR and LQG approaches into one main script
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global sigmaV sigmaW
-model = 'LQG'; %change this to specify noise variances
-time = 20; %total time of simulation
+model = 'LQG_fierce'; %change this to specify noise variances
+time = 10; %total time of simulation
 
 % Determine the size of the noise variances
 switch model
@@ -66,8 +66,5 @@ switch str{s}
 end
 
 % Run the plot function to plot the results
-error_output = plot_model(x_func, y_func, time, plt_type);
-err_accum = error_output(end);
-fprintf('Error accumulation:\n')
-disp(err_accum)
+cost = plot_model(x_func, y_func, time, plt_type);
 

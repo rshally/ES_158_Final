@@ -1,0 +1,4 @@
+Angular Velocity: .5
+Angular Acceleration: .1
+Linear Velocity: 1
+Linear Acceleration: .2

@@ -1,4 +1,4 @@
-function error_output = plot_model(x_func, y_func, time, plt_type)
+function cost = plot_model(x_func, y_func, time, plt_type)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf('Entering Calculation Mode\n')
 % INPUTS: x_func   --> parameterized representation of the x function
@@ -35,14 +35,14 @@ xValues = zeros(1, finalIndex-1);
 yValues = xValues;
 
 % Run function to calculate reference
-[xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT);
+[xRef, uRef, xhat, u] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT);
 
 % Set up figure with limits
 f = figure('units','normalized','outerposition',[0 0 1 1]);
 set(f,'WindowButtonDownFcn',@clicker)
-ax1 = subplot(1,3,1);
-ax2 = subplot(1,3,2);
-ax3 = subplot(1,3,3);
+ax1 = subplot(1,2,1);
+ax2 = subplot(1,2,2);
+%ax3 = subplot(1,1,1);
 set(ax1,'ButtonDownFcn','disp(''axis callback'')')
 
 % Switch-case for determining if plot method is static or dynamic
@@ -54,17 +54,24 @@ switch plt_type
 end
 
 % Run loop to do the plotting while keeping the ability for real-time
-% updating possible 
+% updating possible
+a1 = -3;
+b1 = 3;
+c1 = -3;
+d1 = 3;
 for i = plt_start:finalIndex-1
     currIndex = i;
     % Plot Path
-    a = plot(ax1, xRef(1:i,1), xRef(1:i,2),'b-');
+    x_circ = cos(0:.01:(2*pi));
+    y_circ = sin(0:.01:(2*pi));
+    a = plot(ax1, x_circ, y_circ, 'b--', 'LineWidth', 3);
+    %a = plot(ax1, xRef(1:i,1), xRef(1:i,2),'b--', 'LineWidth', 3);
     hold(ax1,'on')
-    b = plot(ax1, xValues(1:i), yValues(1:i),'r-');
+    b = plot(ax1, xValues(1:i), yValues(1:i),'r-', 'LineWidth', 1);
     legend(ax1, 'Reference Path','Robot Path')
     title(ax1, 'Robot Path')
-    xlim(ax1, [min(xRef(:,1))-2, max(xRef(:,1))+2])
-    ylim(ax1, [min(xRef(:,2))-2, max(xRef(:,2))+2])
+    xlim(ax1, [a1, b1])
+    ylim(ax1, [c1, d1])
     hold(ax1,'off')
     set(a,'HitTest','off')
     set(b,'HitTest','off')
@@ -80,23 +87,10 @@ for i = plt_start:finalIndex-1
     set(ax2,'ylim',ylim_curr)
     set(c,'HitTest','off')
     
-    % Integrate error and return metric
-    if i>1
-        error_output = cumtrapz((0:i-1)*deltaT, err(1:i));
-    else
-        error_output = 0;
-    end
-    plot(ax3, (0:i-1)*deltaT, error_output, 'LineWidth', 1);
-    title(ax3, 'Integration of Error')
-    xlabel(ax3, 'Time (s)')
-    ylabel(ax3, 'Error Accumulation')
-    xlim(ax3, [0,finalIndex*deltaT])
-    ylim_curr = get(ax3,'ylim'); 
-    ylim_curr(1) = 0;
-    set(ax3,'ylim',ylim_curr)
-    
+    cost = calc_cost(xhat, u);
+
     % Pause before showing next time step
-    pause(0.05)
+    pause(0.1)
 end
 
 

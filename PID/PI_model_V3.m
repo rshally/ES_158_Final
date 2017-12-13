@@ -1,44 +1,82 @@
-function err_total = PI_model_V3
+function err_total = PI_model_V3(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Varargin is for determining optimal feedback matrices
 
-
+switch nargin
+    case 0
+        type = 'y=sin(t)';
+    otherwise
+        type = varargin{1};
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Define a global variable to keep track of information
 global v_all w_all
-
-tspan = [0,100];
+t1 = tic;
+tspan = [0,20];
 v_all = [];
 w_all = [];
 
-%%%%%%%%%%%%%%%%%
 %% Define reference function
-% Straight Line
-% x0 = [0;1;pi/2;0;0;0];
-% path_type = 'line';
-% xr_fun = @(t_in) [t_in, zeros(length(t_in),1), zeros(length(t_in),1)];
+switch type
+    case 'y=0'
+        x0 = [0;1;pi/2;0;0;0];
+        xr_fun = @(t_in) [t_in, zeros(length(t_in),1), zeros(length(t_in),1)];
+        kp_v = [.5,.5,0];
+        kp_th = [0,.1,1];
+        ki_v = [.05,.05,0];
+        ki_th = [0,.1,.15];
+    case 'y=x'
+        x0 = [0;1;pi;0;0;0];
+        xr_fun = @(t_in) [t_in, t_in, atan2(ones(length(t_in),1), ones(length(t_in),1))];
+        kp_v = [.8,.8,0];
+        kp_th = [-.1,.1,.5];
+        ki_v = [.1,.1,0];
+        ki_th = [-.05,.05,.2];
+    case 'y=sin(t)'
+        x0 = [0;1;pi;0;0;0];
+        % Static feedback arrays
+        kp_v = [1.5,1.5,0];
+        kp_th = [0,.5,1];
+        ki_v = [.1,.1,0];
+        ki_th = [0,.05,.2];     
+        xr_fun = @(t_in) [t_in, sin(t_in), atan2(cos(t_in), 1)];
+    case 'circle'
+        x0 = [1.4;0;pi/8;0;0;0];
+        xr_fun = @(t_in) [cos(t_in), sin(t_in), atan2(cos(t_in), -sin(t_in))];
+        kp_v = [1,1,.2];
+        kp_th = [-.1,.5,1];
+        ki_v = [.2,.2,0];
+        ki_th = [.1,.1,.2];
+    otherwise
+        error('Reference function not recognized')
+end
 
-% % Y=X
-% x0 = [0;1;pi;0;0;0];
-% path_type = 'y=x';
-% xr_fun = @(t_in) [t_in, t_in, atan2(t_in, t_in)];
+% Load best model if set to 1
+if 0
+    load(['best_PImodel_',type])
+    kp_v = kp_v_best;
+    kp_th = kp_th_best;
+    ki_v = ki_v_best;
+    ki_th = ki_th_best;
+end
 
-%Circle
-% x0 = [2;0;-2*pi/3;0;0;0];
-% path_type = 'circle';
-% xr_fun = @(t_in) [cos(t_in), sin(t_in), atan2(cos(t_in), -sin(t_in))];
-
-% Y=sin(t)
-x0 = [0;1;pi;0;0;0];
-path_type = 'y=sin(t)';
-xr_fun = @(t_in) [t_in, sin(t_in), atan2(cos(t_in), 1)];
-
-%%%%%%%%%%%%%%%%
+% Varargin is for determining optimal feedback matrices
+switch nargin
+    case 1
+        % Do nothing
+    case 5
+        % Replace feedback matrices
+        kp_v = varargin{1};
+        kp_th = varargin{2};
+        ki_v = varargin{3};
+        ki_th = varargin{4};
+    otherwise
+        error('Varargin sequence not recognized')
+end
 
 % PI Model
 options = odeset('MaxStep', .4);
-[t, x_out] = ode45(@(t,x) ode_fun1(t,x,xr_fun,path_type), tspan, x0, options);
+[t, x_out] = ode45(@(t,x) ode_fun1(t,x,xr_fun, kp_v, kp_th, ki_v, ki_th, t1), tspan, x0, options);
 
 %% Plotting output
 % Plot results
@@ -78,8 +116,12 @@ err_total = trapz(t, err_out);
 
 
 %% Functions
-function dx = ode_fun1(t, x, xr_fun, path_type)
+function dx = ode_fun1(t, x, xr_fun, kp_v, kp_th, ki_v, ki_th, t1)
 global v_all w_all 
+
+% Time out if taking too long
+if toc(t1) > 6; return; end
+
 % Define a reference trajectory
 xr = xr_fun(t); 
 xr = reshape(xr,3,1);
@@ -90,36 +132,6 @@ e = [xr;0;0;0] - x;
 
 % Determine direction of angle rotation
 e(3) = -angdiff(xr(3),x(3));
-
-% Define Controller Constants
-switch path_type
-    case 'line' % WELL TUNED!
-        kp_v = [.5,.5,0];
-        kp_th = [0,.1,1];
-        ki_v = [.05,.05,0];
-        ki_th = [0,.1,.15];
-
-    case 'y=x' % DECENTLY TUNED!
-        kp_v = [.8,.8,0];
-        kp_th = [-.1,.1,.5];
-        ki_v = [.1,.1,0];
-        ki_th = [-.05,.05,.2];
-
-    case 'circle'
-        kp_v = [1,1,.2];
-        kp_th = [-.1,.5,1];
-        ki_v = [.2,.2,0];
-        ki_th = [.1,.1,.2];
-        
-    case 'y=sin(t)'
-        kp_v = [1.5,1.5,0];
-        kp_th = [0,.5,1];
-        ki_v = [.1,.1,0];
-        ki_th = [0,.05,.2];
-        
-    otherwise
-        error('Path Type Note Defined Well')
-end
 
 % Create Controllers
 v_all(1:2, end+1) = [kp_v*e(1:3); ki_v*x(4:6)];

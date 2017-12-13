@@ -1,6 +1,12 @@
-function err_total = P_model_V2(type, varargin)
+function err_total = P_model_V2(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+switch nargin
+    case 0
+        type = 'y=sin(t)';
+    otherwise
+        type = varargin{1};
+end
+        
 % NOTE: Need to load best model to test it
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Define a global variable to keep track of information
@@ -9,6 +15,7 @@ t1 = tic;
 tspan = [0,20];
 v_all = [];
 w_all = [];
+plotting = 1;
 
 %% Define reference function
 switch type
@@ -47,14 +54,11 @@ end
 
 % Varargin is for determining optimal feedback matrices
 switch nargin
-    case 1
-        % Do nothing
     case 3
         % Replace feedback matrices
-        kp_v = varargin{1};
-        kp_th = varargin{2};
-    otherwise
-        error('Varargin sequence not recognized')
+        kp_v = varargin{2};
+        kp_th = varargin{3};
+        plotting = 0;
 end
 
 % P Model
@@ -62,39 +66,41 @@ options = odeset('MaxStep', .4);
 [t, x_out] = ode45(@(t,x) ode_fun1(t,x,xr_fun, kp_v, kp_th, t1), tspan, x0, options);
 
 %% Plot results
-f = figure('units','normalized','outerposition',[0 0 1 1]);
-% State plot
-subplot(2,2,1)
 x_ref = xr_fun(t);
-plot(x_ref(:,1), x_ref(:,2))
-hold on
-plot(x_out(:,1), x_out(:,2))
-title('Trajectory')
-legend('Reference','Path')
-% Error plot
-subplot(2,2,2)
 err_out = sqrt((x_ref(:,1)-x_out(:,1)).^2 + (x_ref(:,2)-x_out(:,2)).^2);
-plot(t, err_out );
-title('Error')
-ylim([0, max(err_out)])
-% Plot influence of controllers:
-subplot(2,2,3)
-t_scaler = max(t)/size(v_all,2);
-plot((1:size(v_all,2))*t_scaler, v_all)
-title('Controllers on V')
-legend('Prop')
-subplot(2,2,4)
-plot((1:size(w_all,2))*t_scaler,w_all)
-title('Controllers on W')
-legend('Prop')
 
-% Plot error accumulation
-f2 = figure('units','normalized','outerposition',[0 0 1 1]);
-plot(t, cumtrapz(t, err_out))
-title('Accumulation of Error over Time')
-ylabel(sprintf('Error Accumulation\n(Position Units)'))
-xlabel('Time (s)')
+if plotting
+    f = figure('units','normalized','outerposition',[0 0 1 1]);
+    % State plot
+    subplot(2,2,1)
+    plot(x_ref(:,1), x_ref(:,2))
+    hold on
+    plot(x_out(:,1), x_out(:,2))
+    title('Trajectory')
+    legend('Reference','Path')
+    % Error plot
+    subplot(2,2,2)
+    plot(t, err_out );
+    title('Error')
+    ylim([0, max(err_out)])
+    % Plot influence of controllers:
+    subplot(2,2,3)
+    t_scaler = max(t)/size(v_all,2);
+    plot((1:size(v_all,2))*t_scaler, v_all)
+    title('Controllers on V')
+    legend('Prop')
+    subplot(2,2,4)
+    plot((1:size(w_all,2))*t_scaler,w_all)
+    title('Controllers on W')
+    legend('Prop')
 
+    % Plot error accumulation
+    f2 = figure('units','normalized','outerposition',[0 0 1 1]);
+    plot(t, cumtrapz(t, err_out))
+    title('Accumulation of Error over Time')
+    ylabel(sprintf('Error Accumulation\n(Position Units)'))
+    xlabel('Time (s)')
+end
 
 err_total = trapz(t, err_out);
 
