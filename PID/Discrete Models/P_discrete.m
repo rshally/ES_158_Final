@@ -18,7 +18,7 @@ switch nargin
 end
 
 type = 'circle';
-set(0,'defaultAxesFontSize',20)
+set(0,'defaultAxesFontSize',24)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Import model constraints

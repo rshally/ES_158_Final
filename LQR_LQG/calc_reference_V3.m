@@ -1,4 +1,4 @@
-function [xRef, uRef, xhat, u] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT, varargin)
+function [xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT, varargin)
 % PURPOSE: Calculates positions and reference feedbacks for the model
 % based on the input position functions
 %
@@ -16,7 +16,7 @@ function [xRef, uRef, xhat, u] = calc_reference_V3(x_func, y_func, currIndex, fi
 %          x    --> the coordinates of the robot's motion (error or
 %          coordinates?)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-global  sigmaV sigmaW xTilda yTilda xValues yValues err
+global sigmaV sigmaW xTilda yTilda xValues yValues err u
 
 % Initial Values
 Q = eye(3);
@@ -24,11 +24,19 @@ F = eye(3);
 R = eye(2);
 x = cell(finalIndex,1);
 
+% Import model constraints
+file = '../Model Constraints.txt';
+B = importdata(file);
+w_vel_c = B.data(1);
+w_acc_c = B.data(2);
+v_vel_c = B.data(3);
+v_acc_c = B.data(4);
+
 %what you measure is just x and y
 C = [1 0 0; 0 1 0; 0 0 0];
 
 if currIndex==1
-    x{1} = [.2 0 0]';
+    x{1} = [.2 0 -.1]';
     xRef = zeros(finalIndex,3);
     uRef = zeros(finalIndex,2);
     xhat = x;
@@ -53,6 +61,8 @@ theta_fun = matlabFunction(theta_fun_sym);
 theta_fun_deriv = matlabFunction(theta_fun_deriv_sym);
 x_func_anon = matlabFunction(x_func);
 y_func_anon = matlabFunction(y_func);
+x_func_deriv = matlabFunction(diff(x_func));
+y_func_deriv = matlabFunction(diff(y_func));
 
 % Detmerine state matrices
 syms x1 x2 x3 u1 u2
@@ -82,7 +92,8 @@ fprintf('Calculating A and B\n')
 for i = currIndex:finalIndex
     % NOTE: First uRef value is NaN
     % Check if any values are constants and therefore don't take inputs:
-    c_check = [nargin(x_func_anon), nargin(y_func_anon), nargin(theta_fun), nargin(theta_fun_deriv)];
+    c_check = [nargin(x_func_anon), nargin(y_func_anon), nargin(theta_fun), nargin(theta_fun_deriv)...
+                nargin(x_func_deriv), nargin(y_func_deriv)];
     % VERY LONG way to get correct number of inputs for functions
     tin = deltaT*(i-1);
     if c_check(1)==0
@@ -108,10 +119,23 @@ for i = currIndex:finalIndex
     else
         theta_deriv_val = theta_fun_deriv(tin);
     end
+    
+    if c_check(5)==0
+        x_deriv_val = x_func_deriv();
+    else
+        x_deriv_val = x_func_deriv(tin);
+    end
+    
+    if c_check(6)==0
+        y_deriv_val = y_func_deriv();
+    else
+        y_deriv_val = y_func_deriv(tin);
+    end
+    
     % Now update reference trajectories and feedbacks
     xRef(i,:) = [x_val, y_val, theta_val];
     xRef(isnan(xRef)) = 0;
-    uRef(i,:) = [sqrt(x_val^2 + y_val^2), theta_deriv_val];
+    uRef(i,:) = [sqrt(x_deriv_val^2 + y_deriv_val^2), theta_deriv_val];
     uRef(isnan(xRef)) = 0;
     
     % Calculate A and B matrices at each time step
@@ -149,11 +173,27 @@ else
 end
 
 L = cell(finalIndex-1,1);
-u = L;
 y = L;
 for i = currIndex:finalIndex-1
 L{i} = inv(transpose(B{i})*S{i+1}*B{i}+R)*transpose(B{i})*S{i+1}*A{i};
 u{i} = -L{i}*x{i};
+
+% Incorporate constraints on u:
+if i==1 || isempty(u{i-1})
+    prev_vs = [0,0];
+else
+    prev_vs = u{i-1};
+end
+v_acc = (u{i}(1) - prev_vs(1))/deltaT;
+w_acc = (u{i}(2) - prev_vs(2))/deltaT;
+if abs(v_acc)>v_acc_c
+    u{i}(1) = prev_vs(1) + sign(v_acc)*v_acc_c*deltaT;
+end
+if abs(w_acc)>w_acc_c
+    u{i}(2) = prev_vs(2) + sign(w_acc)*w_acc_c*deltaT;
+end
+
+% Update position
 y{i} = C*x{i}+noiseW{i};
 x{i+1} = A{i}*x{i}+B{i}*u{i}+noiseV{i};
 end

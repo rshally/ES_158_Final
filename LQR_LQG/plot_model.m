@@ -22,7 +22,7 @@ fprintf('Entering Calculation Mode\n')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-global xRef uRef xhat finalIndex deltaT currIndex xValues yValues err xTilda yTilda 
+global xRef uRef xhat finalIndex deltaT currIndex xValues yValues err xTilda yTilda u
 currIndex = 1;
 deltaT = 0.1;
 finalIndex = time/deltaT - currIndex;
@@ -33,9 +33,10 @@ yTilda = 1:finalIndex-1;
 err = 1:finalIndex-1;
 xValues = zeros(1, finalIndex-1);
 yValues = xValues;
+u = cell(1, finalIndex-1);
 
 % Run function to calculate reference
-[xRef, uRef, xhat, u] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT);
+[xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, finalIndex, deltaT);
 
 % Set up figure with limits
 f = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -55,10 +56,10 @@ end
 
 % Run loop to do the plotting while keeping the ability for real-time
 % updating possible
-a1 = -3;
-b1 = 3;
-c1 = -3;
-d1 = 3;
+a1 = -1.5;
+b1 = 1.5;
+c1 = -1.5;
+d1 = 1.5;
 for i = plt_start:finalIndex-1
     currIndex = i;
     % Plot Path
@@ -69,7 +70,7 @@ for i = plt_start:finalIndex-1
     hold(ax1,'on')
     b = plot(ax1, xValues(1:i), yValues(1:i),'r-', 'LineWidth', 1);
     legend(ax1, 'Reference Path','Robot Path')
-    title(ax1, 'Robot Path')
+    title(ax1, 'Robot Trajectory')
     xlim(ax1, [a1, b1])
     ylim(ax1, [c1, d1])
     hold(ax1,'off')
@@ -78,7 +79,7 @@ for i = plt_start:finalIndex-1
     
     % Make Error Plot
     c = plot(ax2, (0:i-1)*deltaT, err(1:i), 'LineWidth', 1);
-    title(ax2, 'X-Y Error')
+    title(ax2, 'X-Y Position Error')
     xlabel(ax2, 'Time (s)')
     ylabel(ax2, 'Error')
     xlim(ax2, [0,finalIndex*deltaT])
@@ -92,8 +93,10 @@ for i = plt_start:finalIndex-1
     % Pause before showing next time step
     pause(0.1)
 end
-
-
+if strcmp(plt_type,'static')
+    fprintf('Cost:\n')
+    disp(cost)
+end
 
 function clicker(~, ~)
     % This is the function to update the trajectory by clicking anywhere in

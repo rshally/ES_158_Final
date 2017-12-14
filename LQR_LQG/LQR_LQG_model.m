@@ -10,8 +10,9 @@
 % RENAME: LQR_LQG_model - merge LQR and LQG approaches into one main script
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 global sigmaV sigmaW
-model = 'LQG_fierce'; %change this to specify noise variances
+model = 'LQR'; %change this to specify noise variances
 time = 10; %total time of simulation
+set(0,'defaultAxesFontSize',24)
 
 % Determine the size of the noise variances
 switch model
@@ -19,8 +20,8 @@ switch model
         sigmaV = 0.01;
         sigmaW = 0.1;
     case 'LQG_fierce'
-        sigmaV = 0.05;
-        sigmaW = 0.5;
+        sigmaV = 0.025;
+        sigmaW = 0.25;
     case 'LQR'
         sigmaV = 0;
         sigmaW = 0;

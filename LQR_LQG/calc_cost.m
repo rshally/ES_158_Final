@@ -18,8 +18,6 @@ end
 
 % Add terms together for overall cost
 cost = term1 + sum(term2) + sum(term3);
-fprintf('Cost:\n')
-disp(cost)
 
 
 end
