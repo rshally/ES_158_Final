@@ -16,7 +16,7 @@ function [xRef, uRef, xhat] = calc_reference_V3(x_func, y_func, currIndex, final
 %          x    --> the coordinates of the robot's motion (error or
 %          coordinates?)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-global sigmaV sigmaW xTilda yTilda xValues yValues err u
+global sigmaV sigmaW xTilda yTilda xValues yValues err u remove_K
 
 % Initial Values
 Q = eye(3);
@@ -40,14 +40,13 @@ if currIndex==1
     xRef = zeros(finalIndex,3);
     uRef = zeros(finalIndex,2);
     xhat = x;
-
 else
     x(1:currIndex) = varargin{1}(1:currIndex);
     xRef(1:currIndex,:) = varargin{2}(1:currIndex,:);
     uRef(1:currIndex,:) = varargin{3}(1:currIndex,:);
     xhat = x;
-
 end
+
 % Calculate A and B matrices
 A = cell(finalIndex,1);
 B = A;
@@ -88,7 +87,6 @@ for i = 1:finalIndex
     noiseW{i} = [normrnd(0,sigmaW); normrnd(0,sigmaW); normrnd(0,sigmaW)];
 end
 
-fprintf('Calculating A and B\n')
 for i = currIndex:finalIndex
     % NOTE: First uRef value is NaN
     % Check if any values are constants and therefore don't take inputs:
@@ -142,12 +140,11 @@ for i = currIndex:finalIndex
     A{i} = eye(3) + deltaT*A_1_anon(uRef(i,1),xRef(i,3));
     B{i} = deltaT*B_1_anon(xRef(i,3));
 end
-fprintf('Finished A and B\n')
 
 %% Compute LQR Controller
 P = cell(finalIndex,1);
 P{currIndex} = zeros(3);
-if sigmaV == 0 && sigmaW==0
+if (sigmaV == 0 && sigmaW==0) || (remove_K)
     P(:) = {zeros(3)};
 else
     for i = currIndex:finalIndex
@@ -164,7 +161,7 @@ S{i} = transpose(A{i})*(S{i+1}-S{i+1}*B{i}*...
 end
 
 K = cell(finalIndex,1);
-if sigmaV==0 && sigmaW==0
+if (sigmaV==0 && sigmaW==0) || (remove_K)
     K(:) = {zeros(3)};
 else
     for i = currIndex:finalIndex
@@ -178,24 +175,41 @@ for i = currIndex:finalIndex-1
 L{i} = inv(transpose(B{i})*S{i+1}*B{i}+R)*transpose(B{i})*S{i+1}*A{i};
 u{i} = -L{i}*x{i};
 
-% Incorporate constraints on u:
-if i==1 || isempty(u{i-1})
-    prev_vs = [0,0];
-else
-    prev_vs = u{i-1};
-end
-v_acc = (u{i}(1) - prev_vs(1))/deltaT;
-w_acc = (u{i}(2) - prev_vs(2))/deltaT;
-if abs(v_acc)>v_acc_c
-    u{i}(1) = prev_vs(1) + sign(v_acc)*v_acc_c*deltaT;
-end
-if abs(w_acc)>w_acc_c
-    u{i}(2) = prev_vs(2) + sign(w_acc)*w_acc_c*deltaT;
-end
+% % %%%%%%%%%%%% Incorporate constraints on u:
+% % if i==1 || isempty(u{i-1})
+% %     prev_vs = [0,0];
+% % else
+% %     prev_vs = u{i-1};
+% % end
+% % 
+% % % Acceleration Constraints
+% % v_acc = (u{i}(1) - prev_vs(1))/deltaT;
+% % w_acc = (u{i}(2) - prev_vs(2))/deltaT;
+% % if abs(v_acc)>v_acc_c
+% %     u{i}(1) = prev_vs(1) + sign(v_acc)*v_acc_c*deltaT;
+% % end
+% % if abs(w_acc)>w_acc_c
+% %     u{i}(2) = prev_vs(2) + sign(w_acc)*w_acc_c*deltaT;
+% % end
+
+% Velocity Constraints
+%u{i}(2) = sign(u{i}(2)) * min(abs(u{i}(2)), w_vel_c);
 
 % Update position
 y{i} = C*x{i}+noiseW{i};
 x{i+1} = A{i}*x{i}+B{i}*u{i}+noiseV{i};
+
+% % % % Apply position constraints
+% % % Vask = (x{i}(3)-x{i+1}(3) ) / deltaT;
+% % % angV = sign(Vask) * min(abs(Vask), w_vel_c );
+% % % 
+% % % if i==1
+% % %     idx = 1;
+% % % else
+% % %     idx = i-1;
+% % % end
+% % % x{i+1}(3) = xRef(i+1,3) - (xRef(i,3) - x{i}(3)) + angV*deltaT ; 
+
 end
 
 for i = currIndex:finalIndex-2

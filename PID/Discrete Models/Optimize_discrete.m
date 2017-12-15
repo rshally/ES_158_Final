@@ -1,4 +1,9 @@
-% Run a stochastic simulation to determine good feedback matrices
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Macro level script to optimize the feedback gain constants for the
+% proportional model
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Run a stochastic simulation to determine good feedback matrices
 type = 'circle';
 model = 'P';
 func_opt = @(k, plotting) P_discrete(k, plotting);
@@ -35,7 +40,7 @@ end
 err_total = reshape(err_total, size(k_1));
 fprintf('Complete...Now Plotting\n\n')
 
-
+%% Plot the optimal results
 % Finding Optimal Cost and K Vector:
 fprintf('\nOptimal k Vector:\n')
 [minC, minIdx] = min(err_total(:));

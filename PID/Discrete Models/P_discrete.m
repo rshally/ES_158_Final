@@ -1,4 +1,8 @@
 function cost = P_discrete(varargin)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Function to generate the discrete proportional model
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Possibility to add in controller constants
 switch nargin
     case 0
@@ -7,14 +11,22 @@ switch nargin
         k2 = 1;
         k3 = 10;
         plotting = 1;
+        sigmaV = 0;
     case 1
         k = varargin{1};
         k1 = k(1); k2 = k(2); k3 = k(3);
         plotting = 1;
+        sigmaV = 0;
     case 2
         k = varargin{1};
         k1 = k(1); k2 = k(2); k3 = k(3);
         plotting = varargin{2};
+        sigmaV = 0;
+    case 3
+        k = varargin{1};
+        k1 = k(1); k2 = k(2); k3 = k(3);
+        plotting = varargin{2};
+        sigmaV = varargin{3};
 end
 
 type = 'circle';
@@ -60,7 +72,12 @@ x_ref(:,1) = xr_fun(0);
 e(:,1) = rot_mat * (x_ref(:,1) - x(:,1)); 
 v = zeros(1,finalIndex-1);
 w = zeros(1,finalIndex-1);
+noiseV = cell(finalIndex,1);
+
 for i = 1:finalIndex-1
+    % Add noise to model
+    noiseV{i} = [normrnd(0,sigmaV); normrnd(0,sigmaV); normrnd(0,sigmaV)];
+
     t = t_all(i);
 
     % Controller:
@@ -79,16 +96,18 @@ for i = 1:finalIndex-1
     w(i) = sign(w(i)) * min([abs(w(i)), w_vel_c, w_by_acc_const]);
     
     % State update
-    e(:,i+1) = e(:,i) + deltaT * ([0,       wr(t,p), 0      ;...
-                                  -wr(t,p), 0,       vr(t,p);...
-                                  0,        0,       0      ] * e(:,i) + ...
-                                  [1,0;0,0;0,1]*[v(i);w(i)]); 
+    A = [0,       wr(t,p), 0      ;...
+        -wr(t,p), 0,       vr(t,p);...
+         0,       0,       0      ];
+    B = [1,0;0,0;0,1];
+                                                            
+    e(:,i+1) = e(:,i) + deltaT * (A * e(:,i) + B*[v(i);w(i)]) + noiseV{i};
     
     % Store reference path 
-    ref_path(:,i) = xr_fun(t);
+    x_ref(:,i+1) = xr_fun(t);
     
     % Convert back to absolute position
-    x(:,i+1) = ref_path(:,i) - inv(rot_mat)*e(:,i+1);
+    x(:,i+1) = x_ref(:,i+1) - inv(rot_mat)*e(:,i+1);
     
 end
 
